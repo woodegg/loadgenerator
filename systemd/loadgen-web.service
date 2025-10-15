@@ -1,0 +1,23 @@
+[Unit]
+Description=Load Generator Web Dashboard Server
+Documentation=file:///usr/local/share/doc/loadgen/README.md
+After=network.target loadgen.service
+Wants=loadgen.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/loadgen-webserver
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Resource limits
+MemoryMax=100M
+
+[Install]
+WantedBy=multi-user.target

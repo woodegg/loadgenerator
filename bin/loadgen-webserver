@@ -1,0 +1,63 @@
+#!/bin/bash
+# loadgen-webserver - Simple HTTP server for load generator dashboard
+# Serves only the index.html file from WEB_ROOT directory
+#
+# Copyright (c) 2025 Jun Zhang
+# Licensed under the MIT License. See LICENSE file in the project root.
+
+set -euo pipefail
+
+# Load configuration (parse INI-style config)
+load_config() {
+    local config_file="/etc/loadgen.conf"
+
+    if [ ! -f "$config_file" ]; then
+        echo "ERROR: Configuration file $config_file not found"
+        exit 1
+    fi
+
+    # Parse INI-style config with sed
+    while IFS='=' read -r key value; do
+        # Skip empty keys
+        [ -z "$key" ] && continue
+
+        # Trim and export
+        export "$key"="$value"
+    done < <(grep -v '^\[' "$config_file" | grep -v '^#' | grep -v '^[[:space:]]*$' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/[[:space:]]*=[[:space:]]*/=/' -e 's/[[:space:]]*#.*//' -e 's/"//g')
+}
+
+# Load configuration
+load_config
+
+# Default values
+WEB_ROOT="${WEB_ROOT:-/var/www/loadgen}"
+WEB_PORT="${WEB_PORT:-80}"
+
+# Check if web dashboard is enabled
+if [ "${ENABLE_WEB_DASHBOARD:-false}" != "true" ]; then
+    echo "Web dashboard is disabled in configuration"
+    exit 0
+fi
+
+# Create web root if it doesn't exist
+mkdir -p "$WEB_ROOT"
+
+# Ensure index.html exists
+if [ ! -f "$WEB_ROOT/index.html" ]; then
+    echo "<html><body><h1>Load Generator Dashboard</h1><p>Waiting for first report generation...</p><p>Refresh this page in a few moments.</p></body></html>" > "$WEB_ROOT/index.html"
+fi
+
+echo "Starting HTTP server on port $WEB_PORT"
+echo "Serving directory: $WEB_ROOT"
+echo "Dashboard URL: http://$(hostname -I | awk '{print $1}'):$WEB_PORT/"
+
+# Start Python HTTP server
+cd "$WEB_ROOT"
+
+# Use Python 3
+if command -v python3 &>/dev/null; then
+    exec python3 -m http.server "$WEB_PORT"
+else
+    echo "ERROR: Python 3 not found"
+    exit 1
+fi

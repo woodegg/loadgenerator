@@ -1,0 +1,33 @@
+# Load Generator Configuration File
+# Copy to /etc/loadgen.conf and customize
+
+[TARGETS]
+# Target load levels (system will try to maintain these)
+CPU_TARGET_PERCENT=50        # Target overall CPU usage %
+BANDWIDTH_TARGET_MBPS=100    # Target bandwidth in Mbps
+
+[MONITORING]
+MONITOR_INTERVAL=5           # Seconds between monitoring checks
+ADJUSTMENT_INTERVAL=10       # Seconds between load adjustments
+REPORT_INTERVAL=60          # Seconds between report generation
+
+[SAFETY]
+MAX_CPU_PERCENT=90          # Never exceed this CPU%
+MAX_BANDWIDTH_MBPS=2000     # Never exceed this bandwidth (tested up to 1800 Mbps)
+MIN_ADJUSTMENT_THRESHOLD=5   # Don't adjust if within 5% of target
+
+[BANDWIDTH_SOURCES]
+# Public speedtest servers for download testing (space-separated)
+# These high-speed servers can deliver 700-900 Mbps each, use multiple for 1000+ Mbps aggregate
+DOWNLOAD_URLS="https://speedtest.atlanta.linode.com/1GB-atlanta.bin https://speedtest.newark.linode.com/1GB-newark.bin https://speedtest.dallas.linode.com/1GB-dallas.bin https://speed.cloudflare.com/__down?bytes=1000000000"
+
+[LOGGING]
+LOG_LEVEL=INFO              # DEBUG, INFO, WARN, ERROR
+REPORT_FILE=/var/log/loadgen/report.log
+STATS_FILE=/var/log/loadgen/stats.csv
+
+[WEB_DASHBOARD]
+ENABLE_WEB_DASHBOARD=true   # Enable web dashboard
+HTML_REPORT_INTERVAL=60     # Generate HTML every 60 seconds (1 minute)
+WEB_ROOT=/var/www/loadgen   # Directory to store HTML files
+WEB_PORT=80                 # HTTP server port

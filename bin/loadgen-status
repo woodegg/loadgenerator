@@ -1,0 +1,155 @@
+#!/bin/bash
+# loadgen-status - Quick status utility for load generator
+#
+# Copyright (c) 2025 Jun Zhang
+# Licensed under the MIT License. See LICENSE file in the project root.
+
+set -eo pipefail
+
+# Configuration
+CONFIG_FILE="/etc/loadgen.conf"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="/usr/local/lib/loadgen"
+
+# Logging functions (minimal for status tool)
+log_error() {
+    echo "ERROR: $*" >&2
+}
+
+# Load configuration
+if [ -f "$CONFIG_FILE" ]; then
+    while IFS='=' read -r key value; do
+        [[ "$key" =~ ^[[:space:]]*# ]] && continue
+        [[ "$key" =~ ^[[:space:]]*$ ]] && continue
+        [[ "$key" =~ ^\[ ]] && continue
+        key=$(echo "$key" | xargs)
+        value=$(echo "$value" | xargs)
+        value="${value%\"}"
+        value="${value#\"}"
+        export "$key=$value"
+    done < "$CONFIG_FILE"
+else
+    log_error "Configuration file not found: $CONFIG_FILE"
+    exit 1
+fi
+
+# Load modules
+for module in "$LIB_DIR"/*.sh; do
+    if [ -f "$module" ]; then
+        source "$module"
+    fi
+done
+
+# Initialize monitoring
+init_monitoring 2>/dev/null || true
+sleep 1  # Wait for initial sample
+
+# Display modes
+show_live() {
+    # Continuous live display
+    while true; do
+        clear
+        display_report
+        echo ""
+        echo "Press Ctrl+C to exit | Updates every ${MONITOR_INTERVAL}s"
+        sleep "$MONITOR_INTERVAL"
+    done
+}
+
+show_summary() {
+    # One-time summary
+    display_report
+}
+
+show_csv() {
+    # Show recent CSV stats
+    if [ -f "$STATS_FILE" ]; then
+        echo "=== Recent Statistics (last 20 entries) ==="
+        tail -21 "$STATS_FILE" | column -t -s ','
+    else
+        echo "No statistics file found at $STATS_FILE"
+    fi
+}
+
+show_averages() {
+    # Show statistical averages
+    generate_summary_stats
+}
+
+show_service_status() {
+    # Show systemd service status
+    echo "=== Systemd Service Status ==="
+    systemctl status loadgen 2>/dev/null || echo "Service not found or not running"
+}
+
+show_logs() {
+    # Show recent logs
+    local lines="${1:-50}"
+    echo "=== Recent Service Logs (last $lines lines) ==="
+    journalctl -u loadgen -n "$lines" --no-pager
+}
+
+# Usage
+usage() {
+    cat <<EOF
+loadgen-status - Load Generator Status Utility
+
+Usage: $(basename "$0") [OPTIONS] [COMMAND]
+
+Commands:
+    (default)      Show current status once
+    live           Continuous live display (updates every ${MONITOR_INTERVAL}s)
+    csv            Show recent CSV statistics
+    stats          Show statistical averages
+    service        Show systemd service status
+    logs [N]       Show recent N service logs (default: 50)
+
+Options:
+    -h, --help     Show this help message
+
+Examples:
+    $(basename "$0")           # Show current status
+    $(basename "$0") live      # Live updating display
+    $(basename "$0") csv       # View CSV statistics
+    $(basename "$0") logs 100  # View last 100 log lines
+
+EOF
+}
+
+# Main
+main() {
+    local command="${1:-summary}"
+
+    case "$command" in
+        live)
+            show_live
+            ;;
+        csv)
+            show_csv
+            ;;
+        stats|averages)
+            show_averages
+            ;;
+        service)
+            show_service_status
+            ;;
+        logs)
+            local lines="${2:-50}"
+            show_logs "$lines"
+            ;;
+        summary|status)
+            show_summary
+            ;;
+        -h|--help|help)
+            usage
+            ;;
+        *)
+            echo "Unknown command: $command"
+            echo ""
+            usage
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

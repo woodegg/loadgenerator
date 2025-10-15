@@ -1,0 +1,38 @@
+[Unit]
+Description=Load Generator Service
+Documentation=file:///usr/local/share/doc/loadgen/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/loadgen.sh start
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStop=/bin/kill -TERM $MAINPID
+
+# Restart configuration
+Restart=on-failure
+RestartSec=10s
+
+# Resource limits (safety)
+# CPUQuota=95%  # Disabled to allow full CPU load generation
+MemoryMax=512M
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=loadgen
+
+# Working directory
+WorkingDirectory=/var/lib/loadgen
+
+# User (run as root for system metrics access)
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
