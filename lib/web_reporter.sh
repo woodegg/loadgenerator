@@ -577,8 +577,8 @@ generate_chart_data() {
     local count=0
     local last_hour=""
 
-    # Skip header and process data
-    tail -n +2 "$stats_file" 2>/dev/null | while IFS=',' read -r ts cpu_tgt cpu_org cpu_syn cpu_tot bw_tgt bw_org bw_syn bw_tot; do
+    # Skip header and process data - use process substitution to avoid subshell
+    while IFS=',' read -r ts cpu_tgt cpu_org cpu_syn cpu_tot bw_tgt bw_org bw_syn bw_tot; do
         # Parse timestamp
         local entry_epoch=$(date -d "$ts" '+%s' 2>/dev/null || echo "0")
 
@@ -616,7 +616,7 @@ generate_chart_data() {
                 ((count++))
             fi
         fi
-    done | tail -1  # Get last line with accumulated data
+    done < <(tail -n +2 "$stats_file" 2>/dev/null)
 
     labels+="]"
     cpu_total_data+="]"
