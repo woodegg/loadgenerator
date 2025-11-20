@@ -180,6 +180,11 @@ control_loop() {
 # Reporting loop
 reporting_loop() {
     set +e  # Don't exit on error within loop
+
+    # Initialize monitoring state for this subprocess
+    init_monitoring
+    log_info "Reporting loop initialized monitoring state"
+
     local cycle=0
 
     while true; do
@@ -219,6 +224,11 @@ reporting_loop() {
 # HTML dashboard reporting loop
 html_reporting_loop() {
     set +e  # Don't exit on error within loop
+
+    # Initialize monitoring state for this subprocess
+    init_monitoring
+    log_info "HTML reporting loop initialized monitoring state"
+
     local cycle=0
 
     # Check if web dashboard is enabled

@@ -13,6 +13,10 @@ ExecStop=/bin/kill -TERM $MAINPID
 # Restart configuration
 Restart=on-failure
 RestartSec=10s
+StartLimitIntervalSec=300
+StartLimitBurst=5
+# If service fails 5 times in 300 seconds, stop trying
+# This prevents infinite restart loops
 
 # Resource limits (safety)
 # CPUQuota=95%  # Disabled to allow full CPU load generation
